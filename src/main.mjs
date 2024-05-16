@@ -1,3 +1,4 @@
+import * as cachedir from 'cachedir'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as tar from 'tar'
@@ -37,21 +38,25 @@ async function install() {
     const { version, bin } = await fs.promises
       .readFile(path.resolve(dirname, '../package.json'), 'utf-8')
       .then(JSON.parse)
-      .then(package_ => ({ version: `v1.0.0`, bin: path.dirname(package_.bin.gleam) }))
-    // .then(package_ => ({ version: `v${package_.version}`, bin: path.dirname(package_.bin.gleam) }))
+      .then(package_ => ({
+        version: `v${package_.version}`,
+        bin: path.dirname(package_.bin.gleam),
+      }))
     const binDir = path.resolve(dirname, '..', bin)
     await fs.promises.mkdir(binDir, { recursive: true })
     const arch = getArch()
     const platform = getPlatform()
     const endpoint = generateEndpoint(version, arch, platform)
-    const tgzPath = path.resolve(`/tmp/gleam-${version}-${arch}-${platform}.tgz`)
+    const cacheDir = cachedir('gleam-npm')
+    const fileName = `gleam-${version}-${arch}-${platform}.tgz`
+    const tgzPath = path.resolve(cacheDir, fileName)
     if (!fs.existsSync(tgzPath)) {
       const tgz = await fetch(endpoint).then(res => res.arrayBuffer())
       await fs.promises.writeFile(tgzPath, Buffer.from(tgz))
     }
     await tar.extract({ file: tgzPath, cwd: binDir })
   } catch (error) {
-    console.log(error)
+    console.error(error)
     console.error(
       [
         '--- ERROR ----------------------------------------',
