@@ -1,4 +1,4 @@
-import * as cachedir from 'cachedir'
+import cachedir from 'cachedir'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as tar from 'tar'
@@ -48,6 +48,7 @@ async function install() {
     const platform = getPlatform()
     const endpoint = generateEndpoint(version, arch, platform)
     const cacheDir = cachedir('gleam-npm')
+    await fs.promises.mkdir(cacheDir, { recursive: true })
     const fileName = `gleam-${version}-${arch}-${platform}.tgz`
     const tgzPath = path.resolve(cacheDir, fileName)
     if (!fs.existsSync(tgzPath)) {
