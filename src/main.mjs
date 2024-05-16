@@ -41,7 +41,7 @@ async function getVersion(dirname) {
   return await fs.promises
     .readFile(path.resolve(dirname, '../package.json'), 'utf-8')
     .then(JSON.parse)
-    .then(package_ => `v1.0.0`)
+    .then(package_ => `v${package_.version}`)
 }
 
 async function getInfos(dirname) {
