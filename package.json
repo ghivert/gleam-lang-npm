@@ -1,0 +1,20 @@
+{
+  "name": "gleam-lang",
+  "version": "0.1.0",
+  "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "gleam": "bin/gleam"
+  },
+  "scripts": {
+    "install": "node src/main.mjs"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "prettier": "^3.2.5"
+  },
+  "dependencies": {
+    "tar": "^7.1.0"
+  }
+}
