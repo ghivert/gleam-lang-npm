@@ -1,6 +1,6 @@
 {
   "name": "gleam-lang",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
   "license": "MIT",
   "type": "module",
