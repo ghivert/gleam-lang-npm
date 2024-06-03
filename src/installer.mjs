@@ -67,7 +67,7 @@ async function dlCompilerArchive({ tgzPath, version, arch, platform }) {
   await fs.promises.writeFile(tgzPath, Buffer.from(tgz))
 }
 
-async function install(options) {
+export async function install(options) {
   const dirname = getDirname()
   const binDir = path.resolve(dirname, '..', 'bin')
 
@@ -98,5 +98,3 @@ async function install(options) {
     )
   }
 }
-
-install()
