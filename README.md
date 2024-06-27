@@ -19,7 +19,7 @@ from a `package.json`, for certain scenarios:
 ## Installation
 
 ```
-yarn add gleam-lang
+yarn add @chouqueth/gleam
 ```
 
 ## Usage
