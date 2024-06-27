@@ -1,12 +1,10 @@
 {
-  "name": "gleam-lang",
+  "name": "@chouqueth/gleam",
   "version": "1.2.1",
   "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
   "license": "MIT",
   "type": "module",
-  "bin": {
-    "gleam": "bin/cli.mjs"
-  },
+  "bin": "bin/cli.mjs",
   "scripts": {
     "install": "node src/main.mjs"
   },
