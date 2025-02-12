@@ -1,6 +1,6 @@
 {
   "name": "@chouqueth/gleam",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
   "license": "MIT",
   "type": "module",
