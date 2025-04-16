@@ -1,3 +1,3 @@
-import { install } from './installer.mjs'
+import * as installer from './installer.mjs'
 
-install()
+installer.install()

@@ -13,7 +13,6 @@
     "prettier": "^3.2.5"
   },
   "dependencies": {
-    "cachedir": "^2.4.0",
     "tar": "^7.1.0"
   },
   "repository": "https://github.com/ghivert/gleam-lang-npm",

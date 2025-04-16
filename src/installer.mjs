@@ -1,100 +1,48 @@
-import cachedir from 'cachedir'
-import * as fs from 'fs'
-import * as path from 'path'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import * as tar from 'tar'
-
-function getArch() {
-  switch (process.arch) {
-    case 'arm64':
-      return 'aarch64'
-    case 'x64':
-      return 'x86_64'
-    default:
-      null
-  }
-}
-
-function getPlatform() {
-  switch (process.platform) {
-    case 'darwin':
-      return 'apple-darwin'
-    case 'linux':
-      return 'unknown-linux-musl'
-    case 'win32':
-      return 'pc-windows-msvc'
-    default:
-      return null
-  }
-}
-
-function generateEndpoint(version, arch, platform) {
-  return `https://github.com/gleam-lang/gleam/releases/download/${version}/gleam-${version}-${arch}-${platform}.tar.gz`
-}
-
-function getDirname() {
-  const file = new URL(import.meta.url)
-  const dirname = path.dirname(file.pathname)
-  return dirname
-}
-
-async function getVersion(dirname) {
-  return await fs.promises
-    .readFile(path.resolve(dirname, '../package.json'), 'utf-8')
-    .then(JSON.parse)
-    .then(package_ => `v${package_.version}`)
-}
-
-async function getInfos(dirname) {
-  const arch = getArch()
-  const platform = getPlatform()
-  const version = await getVersion(dirname)
-  return { arch, platform, version }
-}
-
-async function getArchivePath(dirname, cacheDir) {
-  const { arch, version, platform } = await getInfos(dirname)
-  const fileName = `gleam-${version}-${arch}-${platform}.tgz`
-  const tgzPath = path.resolve(cacheDir, fileName)
-  return { tgzPath, arch, version, platform }
-}
-
-async function dlCompilerArchive({ tgzPath, version, arch, platform }) {
-  const endpoint = generateEndpoint(version, arch, platform)
-  const tgz = await fetch(endpoint).then(res => {
-    if (!res.ok) throw new Error('Unreachable')
-    return res.arrayBuffer()
-  })
-  await fs.promises.writeFile(tgzPath, Buffer.from(tgz))
-}
+import * as environment from './environment.mjs'
+import * as gleam from './gleam.mjs'
 
 export async function install(options) {
-  const dirname = getDirname()
-  const binDir = path.resolve(dirname, '..', 'bin')
-
-  const cacheDir = cachedir('gleam-npm')
-  await fs.promises.mkdir(cacheDir, { recursive: true })
-
+  const { dirname, bin, cache } = directories()
+  const data = await prepareDownload(dirname, cache)
   try {
-    const data = await getArchivePath(dirname, cacheDir)
-    if (!fs.existsSync(data.tgzPath)) await dlCompilerArchive(data)
-    await tar.extract({ file: data.tgzPath, cwd: binDir })
+    await fs.promises.mkdir(cache, { recursive: true })
+    await gleam.compiler.download(data)
+    await tar.extract({ file: data.tgzPath, cwd: bin })
   } catch (error) {
     const isBadArchive = error.message.includes('TAR_BAD_ARCHIVE')
-    if (isBadArchive && !options?.propagateErrors) {
-      const { tgzPath } = await getArchivePath(dirname, cacheDir)
-      if (fs.existsSync(tgzPath)) {
-        await fs.promises.rm(tgzPath)
-        return install({ propagateErrors: true })
-      }
+    const shouldRetry = !(options?.propagateErrors ?? false)
+    const archiveExists = fs.existsSync(data.tgzPath)
+    if (isBadArchive && shouldRetry && archiveExists) {
+      await fs.promises.rm(data.tgzPath)
+      return install({ propagateErrors: true })
     }
     console.error(error)
     console.error(
       [
-        '--- ERROR ----------------------------------------',
-        'It looks your computer does not support gleam yet.',
-        'Currently, gleam support macOS, Linux and Windows.',
-        '--------------------------------------------------',
+        '--- ERROR -----------------------------------------------------',
+        'It looks like your operating system does not support Gleam yet.',
+        'Currently, Gleam supports macOS, Linux and Windows.            ',
+        '---------------------------------------------------------------',
       ].join('\n')
     )
   }
+}
+
+function directories() {
+  const dirname = environment.dirname()
+  const bin = path.resolve(dirname, '..', 'bin')
+  const cache = environment.cachedir('gleam-npm')
+  if (!cache) throw new Error()
+  return { dirname, bin, cache }
+}
+
+async function prepareDownload(dirname, cache) {
+  const { arch, version, platform } = await environment.infos(dirname)
+  if (!arch || !platform) throw new Error('Impossible to detect the env.')
+  const fileName = `gleam-${version}-${arch}-${platform}.tgz`
+  const tgzPath = path.resolve(cache, fileName)
+  return { tgzPath, arch, version, platform }
 }
