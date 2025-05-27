@@ -5,12 +5,13 @@ import * as environment from './environment.mjs'
 import * as gleam from './gleam.mjs'
 
 export async function install(options) {
-  const { dirname, bin, cache } = directories()
+  const { dirname, cache } = directories()
   const data = await prepareDownload(dirname, cache)
   try {
     await fs.promises.mkdir(cache, { recursive: true })
+    await fs.promises.mkdir(data.binDir, { recursive: true })
     await gleam.compiler.download(data)
-    await tar.extract({ file: data.tgzPath, cwd: bin })
+    await tar.extract({ file: data.tgzPath, cwd: data.binDir })
   } catch (error) {
     const isBadArchive = error.message.includes('TAR_BAD_ARCHIVE')
     const shouldRetry = !(options?.propagateErrors ?? false)
@@ -31,18 +32,20 @@ export async function install(options) {
   }
 }
 
-function directories() {
+export function directories() {
   const dirname = environment.dirname()
-  const bin = path.resolve(dirname, '..', 'bin')
   const cache = environment.cachedir('gleam-npm')
   if (!cache) throw new Error()
-  return { dirname, bin, cache }
+  return { dirname, cache }
 }
 
-async function prepareDownload(dirname, cache) {
+export async function prepareDownload(dirname, cache) {
   const { arch, version, platform } = await environment.infos(dirname)
   if (!arch || !platform) throw new Error('Impossible to detect the env.')
-  const fileName = `gleam-${version}-${arch}-${platform}.tgz`
-  const tgzPath = path.resolve(cache, fileName)
-  return { tgzPath, arch, version, platform }
+  const archiveName = `gleam-${version}-${arch}-${platform}.tgz`
+  const binName = `gleam-${version}-${arch}-${platform}`
+  const tgzPath = path.resolve(cache, archiveName)
+  const binDir = path.resolve(cache, binName)
+  const binPath = path.resolve(binDir, 'gleam')
+  return { tgzPath, binDir, binPath, arch, version, platform }
 }

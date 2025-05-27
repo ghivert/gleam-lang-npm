@@ -16,5 +16,8 @@
     "tar": "^7.1.0"
   },
   "repository": "https://github.com/ghivert/gleam-lang-npm",
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.6.0",
+  "imports": {
+    "#chouquette/*": "./src/*.mjs"
+  }
 }
