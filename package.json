@@ -8,6 +8,23 @@
   "scripts": {
     "install": "node src/main.mjs"
   },
+  "keywords": [
+    "beam",
+    "bin",
+    "binary",
+    "build",
+    "bundler",
+    "cli",
+    "compile",
+    "compiler",
+    "erlang",
+    "fallback",
+    "gleam",
+    "install",
+    "installation",
+    "lustre",
+    "wrapper"
+  ],
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "prettier": "^3.2.5"
