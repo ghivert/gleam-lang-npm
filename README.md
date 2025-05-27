@@ -19,7 +19,7 @@ from a `package.json`, for certain scenarios:
 ## Installation
 
 ```
-yarn add @chouqueth/gleam
+yarn add @chouquette/gleam
 ```
 
 ## Usage

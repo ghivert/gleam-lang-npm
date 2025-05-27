@@ -5,6 +5,11 @@
   "license": "MIT",
   "type": "module",
   "bin": "bin/cli.mjs",
+  "repository": "https://github.com/ghivert/gleam-lang-npm",
+  "packageManager": "yarn@4.6.0",
+  "imports": {
+    "#chouquette/*": "./src/*.mjs"
+  },
   "scripts": {
     "install": "node src/main.mjs"
   },
@@ -31,10 +36,5 @@
   },
   "dependencies": {
     "tar": "^7.1.0"
-  },
-  "repository": "https://github.com/ghivert/gleam-lang-npm",
-  "packageManager": "yarn@4.6.0",
-  "imports": {
-    "#chouquette/*": "./src/*.mjs"
   }
 }
