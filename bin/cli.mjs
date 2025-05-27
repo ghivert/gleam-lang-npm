@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import * as child_process from 'node:child_process'
+import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
@@ -17,6 +17,6 @@ if (!isExec) {
 }
 
 // Run the compiler.
-child_process
-  .spawn(binaryPath, process.argv.slice(2), { stdio: 'inherit' })
-  .on('exit', process.exit)
+const args = process.argv.slice(2)
+const options = { stdio: 'inherit' }
+childProcess.spawn(binaryPath, args, options).on('exit', process.exit)
