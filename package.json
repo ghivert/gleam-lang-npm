@@ -4,8 +4,13 @@
   "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
   "license": "MIT",
   "type": "module",
-  "bin": "bin/cli.mjs",
-  "repository": "https://github.com/ghivert/gleam-lang-npm",
+  "bin": {
+    "gleam": "bin/cli.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ghivert/gleam-lang-npm.git"
+  },
   "packageManager": "yarn@4.6.0",
   "imports": {
     "#chouquette/*": "./src/*.mjs"
@@ -28,6 +33,7 @@
     "install",
     "installation",
     "lustre",
+    "redraw",
     "wrapper"
   ],
   "devDependencies": {
