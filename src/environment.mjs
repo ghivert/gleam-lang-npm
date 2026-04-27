@@ -3,6 +3,7 @@ import * as path from 'node:path'
 
 export { cachedir } from './environment/cachedir.mjs'
 
+/** @param {string} dirname */
 export async function infos(dirname) {
   const arch = getArch()
   const platform = getPlatform()
@@ -16,6 +17,7 @@ export function dirname() {
   return dirname
 }
 
+/** @param {string} dirname */
 async function getVersion(dirname) {
   const pack = path.resolve(dirname, '../package.json')
   const content = await fs.promises.readFile(pack, 'utf-8')

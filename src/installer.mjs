@@ -4,6 +4,7 @@ import * as tar from 'tar'
 import * as environment from './environment.mjs'
 import * as gleam from './gleam.mjs'
 
+/** @param {{ propagateErrors?: boolean }} [options] */
 export async function install(options) {
   const { dirname, cache } = directories()
   const data = await prepareDownload(dirname, cache)
@@ -13,12 +14,16 @@ export async function install(options) {
     await gleam.compiler.download(data)
     await tar.extract({ file: data.tgzPath, cwd: data.binDir })
   } catch (error) {
-    const isBadArchive = error.message.includes('TAR_BAD_ARCHIVE')
-    const shouldRetry = !(options?.propagateErrors ?? false)
-    const archiveExists = fs.existsSync(data.tgzPath)
-    if (isBadArchive && shouldRetry && archiveExists) {
-      await fs.promises.rm(data.tgzPath)
-      return install({ propagateErrors: true })
+    if (typeof error === 'object' && error) {
+      if ('message' in error && typeof error.message === 'string') {
+        const isBadArchive = error.message.includes('TAR_BAD_ARCHIVE')
+        const shouldRetry = !(options?.propagateErrors ?? false)
+        const archiveExists = fs.existsSync(data.tgzPath)
+        if (isBadArchive && shouldRetry && archiveExists) {
+          await fs.promises.rm(data.tgzPath)
+          return install({ propagateErrors: true })
+        }
+      }
     }
     console.error(error)
     console.error(
@@ -39,6 +44,7 @@ export function directories() {
   return { dirname, cache }
 }
 
+/** @param {string} dirname @param {string} cache */
 export async function prepareDownload(dirname, cache) {
   const { arch, version, platform } = await environment.infos(dirname)
   if (!arch || !platform) throw new Error('Impossible to detect the env.')

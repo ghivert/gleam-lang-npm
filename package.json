@@ -1,12 +1,10 @@
 {
   "name": "@chouquette/gleam",
-  "version": "1.15.4",
+  "version": "1.16.0",
   "author": "Guillaume Hivert <hivert.is.coming@gmail.com>",
   "license": "MIT",
   "type": "module",
-  "bin": {
-    "gleam": "bin/cli.mjs"
-  },
+  "bin": "bin/cli.mjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ghivert/gleam-lang-npm.git"
@@ -37,10 +35,12 @@
     "wrapper"
   ],
   "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
-    "prettier": "^3.2.5"
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "@types/node": "^25.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
-    "tar": "^7.1.0"
+    "tar": "^7.5.13"
   }
 }
