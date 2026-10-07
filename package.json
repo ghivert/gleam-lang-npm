@@ -13,7 +13,8 @@
     "#chouquette/*": "./src/*.mjs"
   },
   "scripts": {
-    "install": "node src/main.mjs"
+    "install": "node src/main.mjs",
+    "manifest": "node scripts/manifest.mjs"
   },
   "keywords": [
     "beam",
