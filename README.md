@@ -28,6 +28,10 @@ npm install @chouquette/gleam
 npx gleam --help
 ```
 
+The compiler is downloaded the first time you run it, not when the package is
+installed, so the package has no install script. To fetch it ahead of time, in a
+Docker image for instance, run `npx gleam --version` once.
+
 ## Goal of the package
 
 This package will mimic main releases of gleam, meaning all intermediates
