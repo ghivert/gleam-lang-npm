@@ -9,26 +9,31 @@ at install time.
 
 - `bin/cli.mjs`: the `gleam` executable. Downloads the compiler when it is not
   cached yet, then spawns it.
-- `src/installer.mjs`: download and extraction flow, cache paths.
+- `src/version.mjs`: picks the version to run from `gleam.toml`, `package.json`
+  `engines`, mise files and `.tool-versions`, or falls back to the latest.
+- `src/locate.mjs`: finds a gleam installed in `PATH`, skipping this package.
+- `src/installer.mjs`: cache paths, atomic install in a temporary directory.
 - `src/environment.mjs`, `src/environment/cachedir.mjs`: arch, platform and
   cache directory detection.
-- `src/gleam/compiler.mjs`: release URL and download.
+- `src/gleam/compiler.mjs`: release URL, download and checksum verification.
 - `src/manifest.mjs`: generated, see below.
 - `scripts/manifest.mjs`: maintainer tool that generates `src/manifest.mjs`.
+- `test/`: tests, run with `npm test` (`node:test`, no network).
 
 ## Commands
 
 ```
 npm ci
 npx tsc --noEmit
-npx prettier --check src bin scripts package.json README.md
+npm test
+npx prettier --check src bin scripts test package.json README.md AGENTS.md
 ```
 
 The package supports Node 22 and later (`engines`). Keep `@types/node` on the
 same major, so `tsc` flags APIs Node 22 does not have.
 
 npm is the only package manager. Commit `package-lock.json`, never a Yarn or
-pnpm lockfile. There is no test suite yet.
+pnpm lockfile.
 
 ## Style
 
@@ -47,8 +52,9 @@ formatting (no semicolons, single quotes, 80 columns); do not hand-format.
   show, as a short plain sentence ending with a period. No banners, no
   commentary on what the next line does, no section dividers.
 - Errors are `throw new Error(...)` with a short message.
-- Do not add dependencies for something a few lines of Node can do. `tar` is the
-  only runtime dependency, keep it that way unless there is a strong reason.
+- Runtime dependencies are `tar`, `semver` and `smol-toml`. Use a maintained
+  package for a format or a spec (versions, TOML, archives) instead of writing a
+  parser, and do not add one for something a few lines of Node can do.
 
 ## Security
 
@@ -59,6 +65,8 @@ as security sensitive.
   the URL from user input or environment variables.
 - Never weaken or bypass integrity checks. A failed check must stop the install
   with a clear error, not fall back silently.
+- A gleam found in `PATH` is run without any check, on purpose: the user
+  installed it. Downloaded archives are always checked against the manifest.
 - Spawn processes with an argument array (`spawn`, `execFile`), never through a
   shell string.
 - Keep `npm audit` at zero vulnerabilities, and bump `tar` promptly when it
