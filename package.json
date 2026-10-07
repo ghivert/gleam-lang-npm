@@ -41,6 +41,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "tar": "^7.5.13"
+    "tar": "7.5.21"
   }
 }
