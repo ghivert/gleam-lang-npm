@@ -19,13 +19,13 @@ from a `package.json`, for certain scenarios:
 ## Installation
 
 ```
-yarn add @chouquette/gleam
+npm install @chouquette/gleam
 ```
 
 ## Usage
 
 ```
-yarn gleam --help
+npx gleam --help
 ```
 
 ## Goal of the package

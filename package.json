@@ -9,7 +9,6 @@
     "type": "git",
     "url": "git+https://github.com/ghivert/gleam-lang-npm.git"
   },
-  "packageManager": "yarn@4.6.0",
   "imports": {
     "#chouquette/*": "./src/*.mjs"
   },
@@ -41,6 +40,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "tar": "^7.5.13"
+    "tar": "^7.5.22"
   }
 }
