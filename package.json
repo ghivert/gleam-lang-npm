@@ -13,7 +13,8 @@
     "#chouquette/*": "./src/*.mjs"
   },
   "scripts": {
-    "install": "node src/main.mjs"
+    "manifest": "node scripts/manifest.mjs",
+    "test": "node --test"
   },
   "keywords": [
     "beam",
@@ -33,13 +34,23 @@
     "redraw",
     "wrapper"
   ],
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "@types/node": "^25.6.0",
+    "@types/node": "^22.20.5",
+    "@types/semver": "^7.8.0",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "semver": "^7.8.5",
+    "smol-toml": "^1.9.0",
     "tar": "^7.5.22"
   }
 }
