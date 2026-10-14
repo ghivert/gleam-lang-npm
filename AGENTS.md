@@ -85,12 +85,14 @@ its SHA-256 and the strength of the proof behind it. Never edit it by hand.
 npm run manifest -- add 1.19.0
 ```
 
-The script needs the GitHub CLI (`gh`) to verify attestations, and no login: it
-downloads from the public release pages. For each archive it checks the SHA-256
-against the `.sha256` published by Gleam and, when a `.sigstore` bundle exists,
-verifies the attestation against the `gleam-lang/gleam` release workflow.
-Versions before 1.10.0 have no attestation and are recorded as `sha256-only`. If
-a check fails, the script stops and writes nothing for that version.
+The script needs no GitHub CLI and no login: it downloads from the public
+release pages and verifies Sigstore itself (`sigstore`, a dev dependency, which
+needs Node 22.22.2 or later). For each archive it checks the SHA-256 against the
+`.sha256` published by Gleam and, when a `.sigstore` bundle exists, requires an
+attestation issued by the release workflow of `gleam-lang/gleam` at the tag of
+that very version, signed for that very archive. Versions before 1.10.0 have no
+attestation and are recorded as `sha256-only`. If a check fails, the script
+stops and writes nothing for that version.
 
 ## Git
 

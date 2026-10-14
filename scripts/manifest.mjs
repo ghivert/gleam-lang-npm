@@ -1,19 +1,16 @@
 // Adds Gleam releases to src/manifest.mjs, after checking each archive.
-// Needs the GitHub CLI to verify attestations. Usage: npm run manifest -- add 1.19.0 [...]
-import * as childProcess from 'node:child_process'
+// Usage: npm run manifest -- add 1.19.0 [...]
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import * as util from 'node:util'
 import * as prettier from 'prettier'
-
-const execFile = util.promisify(childProcess.execFile)
+import * as sigstore from 'sigstore'
 
 const repo = 'gleam-lang/gleam'
 const workflow = `${repo}/.github/workflows/release.yaml`
-const spdx = 'https://spdx.dev/Document/v2.3'
+const issuer = 'https://token.actions.githubusercontent.com'
 const manifestUrl = new URL('../src/manifest.mjs', import.meta.url)
 
 const arches = ['aarch64', 'x86_64']
@@ -23,18 +20,6 @@ const platforms = ['apple-darwin', 'pc-windows-msvc', 'unknown-linux-musl']
  * @typedef {import('../src/manifest.mjs').Asset} Asset
  * @typedef {import('../src/manifest.mjs').Manifest} Manifest
  */
-
-/** @param {...string} args */
-async function gh(...args) {
-  try {
-    return await execFile('gh', args, { maxBuffer: 64 * 1024 * 1024 })
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      throw new Error('The GitHub CLI is required: https://cli.github.com')
-    }
-    throw error
-  }
-}
 
 /** @param {string} address */
 async function get(address) {
@@ -68,6 +53,25 @@ async function sha256(file) {
   return hash.digest('hex')
 }
 
+// The attestation must come from the release workflow of this very tag, and
+// must have been signed for this very archive.
+/** @param {string} version @param {string} file @param {string} digest @param {string} bundlePath */
+async function verifyAttestation(version, file, digest, bundlePath) {
+  const bundle = JSON.parse(await fs.promises.readFile(bundlePath, 'utf-8'))
+  await sigstore.verify(bundle, {
+    certificateIssuer: issuer,
+    certificateIdentityURI: `https://github.com/${workflow}@refs/tags/v${version}`,
+  })
+  const payload = Buffer.from(bundle.dsseEnvelope.payload, 'base64')
+  const { subject } = JSON.parse(payload.toString('utf-8'))
+  const signed = subject.find(
+    (/** @type {{ name: string }} */ s) => s.name === file
+  )
+  if (signed?.digest?.sha256 !== digest) {
+    throw new Error(`${file}: the attestation does not cover this archive.`)
+  }
+}
+
 /** @param {string} version @param {string} triple @param {string[]} available @param {string} dir @returns {Promise<Asset | null>} */
 async function record(version, triple, available, dir) {
   const file = available.find(name => {
@@ -86,28 +90,12 @@ async function record(version, triple, available, dir) {
   if (digest !== expected)
     throw new Error(`${file}: sha256 mismatch (${digest} != ${expected})`)
 
-  const sigstore = `${file}.sigstore`
-  if (!available.includes(sigstore))
+  const bundle = `${file}.sigstore`
+  if (!available.includes(bundle))
     return { file, sha256: digest, provenance: 'sha256-only' }
 
-  // gh only accepts bundles with a .json extension.
-  const bundle = path.join(dir, `${file}.sigstore.json`)
-  await fs.promises.copyFile(await download(version, sigstore, dir), bundle)
-  await gh(
-    'attestation',
-    'verify',
-    archive,
-    '--bundle',
-    bundle,
-    '--repo',
-    repo,
-    '--signer-workflow',
-    workflow,
-    '--predicate-type',
-    spdx,
-    '--format',
-    'json'
-  )
+  const bundlePath = await download(version, bundle, dir)
+  await verifyAttestation(version, file, digest, bundlePath)
   return { file, sha256: digest, provenance: 'sigstore' }
 }
 
