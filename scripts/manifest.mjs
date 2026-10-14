@@ -1,5 +1,5 @@
 // Adds Gleam releases to src/manifest.mjs, after checking each archive.
-// Needs the GitHub CLI. Usage: npm run manifest -- add 1.19.0 [...]
+// Needs the GitHub CLI to verify attestations. Usage: npm run manifest -- add 1.19.0 [...]
 import * as childProcess from 'node:child_process'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
@@ -36,21 +36,29 @@ async function gh(...args) {
   }
 }
 
+/** @param {string} address */
+async function get(address) {
+  const res = await fetch(address)
+  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${address}.`)
+  return res
+}
+
 /** @param {string} version @param {string} name @param {string} dir */
 async function download(version, name, dir) {
-  await gh(
-    'release',
-    'download',
-    `v${version}`,
-    '--repo',
-    repo,
-    '--pattern',
-    name,
-    '--dir',
-    dir,
-    '--clobber'
+  const base = `https://github.com/${repo}/releases/download`
+  const res = await get(`${base}/v${version}/${name}`)
+  const file = path.join(dir, name)
+  await fs.promises.writeFile(file, Buffer.from(await res.arrayBuffer()))
+  return file
+}
+
+/** @param {string} version */
+async function listAssets(version) {
+  const api = `https://api.github.com/repos/${repo}/releases/tags`
+  const release = await (await get(`${api}/v${version}`)).json()
+  return release.assets.map(
+    (/** @type {{ name: string }} */ asset) => asset.name
   )
-  return path.join(dir, name)
 }
 
 /** @param {string} file */
@@ -105,18 +113,7 @@ async function record(version, triple, available, dir) {
 
 /** @param {string} version @returns {Promise<Record<string, Asset>>} */
 async function collect(version) {
-  const { stdout } = await gh(
-    'release',
-    'view',
-    `v${version}`,
-    '--repo',
-    repo,
-    '--json',
-    'assets',
-    '-q',
-    '.assets[].name'
-  )
-  const available = stdout.split('\n').filter(Boolean)
+  const available = await listAssets(version)
   const dir = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), 'gleam-manifest-')
   )

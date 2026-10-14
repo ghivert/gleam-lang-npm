@@ -85,7 +85,8 @@ its SHA-256 and the strength of the proof behind it. Never edit it by hand.
 npm run manifest -- add 1.19.0
 ```
 
-The script needs the GitHub CLI (`gh`). For each archive it checks the SHA-256
+The script needs the GitHub CLI (`gh`) to verify attestations, and no login: it
+downloads from the public release pages. For each archive it checks the SHA-256
 against the `.sha256` published by Gleam and, when a `.sigstore` bundle exists,
 verifies the attestation against the `gleam-lang/gleam` release workflow.
 Versions before 1.10.0 have no attestation and are recorded as `sha256-only`. If
