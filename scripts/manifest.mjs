@@ -26,7 +26,14 @@ const platforms = ['apple-darwin', 'pc-windows-msvc', 'unknown-linux-musl']
 
 /** @param {...string} args */
 async function gh(...args) {
-  return execFile('gh', args, { maxBuffer: 64 * 1024 * 1024 })
+  try {
+    return await execFile('gh', args, { maxBuffer: 64 * 1024 * 1024 })
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error('The GitHub CLI is required: https://cli.github.com')
+    }
+    throw error
+  }
 }
 
 /** @param {string} version @param {string} name @param {string} dir */

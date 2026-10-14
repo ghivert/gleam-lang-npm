@@ -1,5 +1,7 @@
 import * as assert from 'node:assert/strict'
 import * as test from 'node:test'
+import * as semver from 'semver'
+import * as releases from '../src/manifest.mjs'
 import * as version from '../src/version.mjs'
 import { project } from './helpers.mjs'
 
@@ -12,13 +14,14 @@ function fromGleamToml(requirement) {
 test.describe('gleam.toml requirements', () => {
   const cases = [
     ['>= 1.0.0 and < 1.10.0', '1.9.1'],
-    ['~> 1.6', '1.19.0'],
+    ['~> 1.6', version.latest()],
     ['~> 1.6.0', '1.6.3'],
     ['== 1.8.0', '1.8.0'],
     ['1.8.0', '1.8.0'],
-    ['>= 1.18.0 and != 1.19.0', '1.18.1'],
+    ['>= 1.18.0 and < 1.19.0', '1.18.1'],
+    ['>= 1.18.0 and < 1.19.0 and != 1.18.1', '1.18.0'],
     ['< 1.1.0 or == 1.5.0', '1.5.0'],
-    ['>= 1.0.0', '1.19.0'],
+    ['>= 1.0.0', version.latest()],
   ]
   for (const [requirement, expected] of cases) {
     test.it(`${requirement} resolves to ${expected}`, () => {
@@ -38,7 +41,7 @@ test.describe('gleam.toml requirements', () => {
 test.describe('other sources', () => {
   test.it('reads engines.gleam from package.json', () => {
     const dir = project({ 'package.json': '{"engines":{"gleam":"^1.6.0"}}' })
-    assert.equal(version.fromProject(dir)?.version, '1.19.0')
+    assert.equal(version.fromProject(dir)?.version, version.latest())
   })
 
   test.it('reads mise.toml, where 1.15 means any 1.15.x', () => {
@@ -80,7 +83,7 @@ test.describe('other sources', () => {
 
   test.it('accepts latest from mise', () => {
     const dir = project({ 'mise.toml': '[tools]\ngleam = "latest"\n' })
-    assert.equal(version.fromProject(dir)?.version, '1.19.0')
+    assert.equal(version.fromProject(dir)?.version, version.latest())
   })
 })
 
@@ -127,6 +130,7 @@ test.describe('order and lookup', () => {
   })
 
   test.it('knows the latest release', () => {
-    assert.equal(version.latest(), '1.19.0')
+    assert.ok(version.latest() in releases.manifest.versions)
+    assert.ok(semver.gte(version.latest(), '1.19.2'))
   })
 })

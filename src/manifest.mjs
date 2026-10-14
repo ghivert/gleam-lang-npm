@@ -1254,5 +1254,81 @@ export const manifest = {
         provenance: 'sigstore',
       },
     },
+    '1.19.1': {
+      'aarch64-apple-darwin': {
+        file: 'gleam-v1.19.1-aarch64-apple-darwin.tar.gz',
+        sha256:
+          '31827214f9dd4dd60b7efb7be7bd42dd76ff70e646936773d2a4ea98a2fef3d1',
+        provenance: 'sigstore',
+      },
+      'aarch64-pc-windows-msvc': {
+        file: 'gleam-v1.19.1-aarch64-pc-windows-msvc.zip',
+        sha256:
+          'c86b0608f735e39b250ab0fec1cbf71edacabe0cdb61d31dc53c8324762c4c00',
+        provenance: 'sigstore',
+      },
+      'aarch64-unknown-linux-musl': {
+        file: 'gleam-v1.19.1-aarch64-unknown-linux-musl.tar.gz',
+        sha256:
+          'b0eeed8c625471c2ab0fab7058b53979c47fa3bd84315b49b69481e26d583f7d',
+        provenance: 'sigstore',
+      },
+      'x86_64-apple-darwin': {
+        file: 'gleam-v1.19.1-x86_64-apple-darwin.tar.gz',
+        sha256:
+          '2335010e1e4849a0f23dfed08334c32b9f7e9ccab87310c94925de1b250bdfe7',
+        provenance: 'sigstore',
+      },
+      'x86_64-pc-windows-msvc': {
+        file: 'gleam-v1.19.1-x86_64-pc-windows-msvc.zip',
+        sha256:
+          'b55d187912fe1e6938990343171f31318635dca52772679cbec438775e01df65',
+        provenance: 'sigstore',
+      },
+      'x86_64-unknown-linux-musl': {
+        file: 'gleam-v1.19.1-x86_64-unknown-linux-musl.tar.gz',
+        sha256:
+          '221bff0758372aae76cfe440b7445f9f5c7ea67947297b1112115c798fd18385',
+        provenance: 'sigstore',
+      },
+    },
+    '1.19.2': {
+      'aarch64-apple-darwin': {
+        file: 'gleam-v1.19.2-aarch64-apple-darwin.tar.gz',
+        sha256:
+          'fa7c6113e162ab1d979f72e7dde3e907b87e4b30c518af178768e577d180324d',
+        provenance: 'sigstore',
+      },
+      'aarch64-pc-windows-msvc': {
+        file: 'gleam-v1.19.2-aarch64-pc-windows-msvc.zip',
+        sha256:
+          'f9bb658ab191bb0f85e21045dcef36c2900ce83be50aef84dcf2a88c88cd5e32',
+        provenance: 'sigstore',
+      },
+      'aarch64-unknown-linux-musl': {
+        file: 'gleam-v1.19.2-aarch64-unknown-linux-musl.tar.gz',
+        sha256:
+          'd1d1a9d53f6b317c0563a4806873c8ccace54291ead023373728af379402d4f1',
+        provenance: 'sigstore',
+      },
+      'x86_64-apple-darwin': {
+        file: 'gleam-v1.19.2-x86_64-apple-darwin.tar.gz',
+        sha256:
+          'c578192530507b868c4a6c8cb7ad5d2ab0830890257f41036f17c82853f19d05',
+        provenance: 'sigstore',
+      },
+      'x86_64-pc-windows-msvc': {
+        file: 'gleam-v1.19.2-x86_64-pc-windows-msvc.zip',
+        sha256:
+          '21744a7fb040f64142c1b45b7a0149bf2c46b4aa46b435abd35848f9821ce729',
+        provenance: 'sigstore',
+      },
+      'x86_64-unknown-linux-musl': {
+        file: 'gleam-v1.19.2-x86_64-unknown-linux-musl.tar.gz',
+        sha256:
+          '2ba2afb66ca9f6dcc01a4a6e9169b6942963bad6483bec9571ddc078cfe6f41f',
+        provenance: 'sigstore',
+      },
+    },
   },
 }
