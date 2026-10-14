@@ -32,6 +32,10 @@ npx prettier --check src bin scripts test package.json README.md AGENTS.md
 The package supports Node 22 and later (`engines`). Keep `@types/node` on the
 same major, so `tsc` flags APIs Node 22 does not have.
 
+CI (`.github/workflows/ci.yml`) runs the checks above, then the tests and a real
+download of the compiler on Linux, macOS and Windows, with Node 22 and 24. Pin
+actions to a commit SHA.
+
 npm is the only package manager. Commit `package-lock.json`, never a Yarn or
 pnpm lockfile.
 

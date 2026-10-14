@@ -1,4 +1,5 @@
 import * as assert from 'node:assert/strict'
+import * as childProcess from 'node:child_process'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -11,11 +12,11 @@ import { executable, project } from './helpers.mjs'
 test.afterEach(() => test.mock.restoreAll())
 
 /** @param {string} cache @param {string} sha256 */
-function fake(cache, sha256) {
+function fake(cache, sha256, file = 'gleam.tar.gz', bin = 'gleam') {
   const binDir = path.join(cache, 'gleam-v0.0.0')
   const provenance = /** @type {const} */ ('sha256-only')
-  const release = { version: '0.0.0', file: 'gleam.tar.gz', sha256, provenance }
-  return { cache, binDir, binPath: path.join(binDir, 'gleam'), release }
+  const release = { version: '0.0.0', file, sha256, provenance }
+  return { cache, binDir, binPath: path.join(binDir, bin), release }
 }
 
 async function archive() {
@@ -43,7 +44,7 @@ test.describe('prepare', () => {
   })
 })
 
-test.describe('install', { skip: process.platform === 'win32' }, () => {
+test.describe('install', () => {
   test.it('extracts a verified archive', async () => {
     test.mock.method(console, 'error', () => {})
     const { body, sha256 } = await archive()
@@ -53,6 +54,31 @@ test.describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(data.binPath))
     assert.deepEqual(fs.readdirSync(data.cache), ['gleam-v0.0.0'])
   })
+
+  // GNU tar, found on Linux, cannot write zip archives.
+  test.it(
+    'extracts a zip archive',
+    { skip: process.platform === 'linux' },
+    async () => {
+      test.mock.method(console, 'error', () => {})
+      const dir = project({ 'gleam.exe': 'binary' })
+      const file = path.join(dir, 'gleam.zip')
+      childProcess.execFileSync('tar', [
+        '-a',
+        '-cf',
+        file,
+        '-C',
+        dir,
+        'gleam.exe',
+      ])
+      const body = fs.readFileSync(file)
+      const sha256 = crypto.createHash('sha256').update(body).digest('hex')
+      test.mock.method(globalThis, 'fetch', async () => new Response(body))
+      const data = fake(project({}), sha256, 'gleam.zip', 'gleam.exe')
+      await installer.install(data)
+      assert.ok(fs.existsSync(data.binPath))
+    }
+  )
 
   test.it('survives two installs at the same time', async () => {
     test.mock.method(console, 'error', () => {})
