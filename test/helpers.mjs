@@ -22,3 +22,35 @@ export function executable(dir, name, script) {
   fs.writeFileSync(file, `#!/bin/sh\n${script}\n`, { mode: 0o755 })
   return file
 }
+
+export const gleamName = process.platform === 'win32' ? 'gleam.exe' : 'gleam'
+
+// A shell script cannot be an executable on Windows, so node stands in for
+// gleam there. A preloaded file tells it to print its arguments and exit.
+const withNode =
+  process.platform === 'win32' || Boolean(process.env.FAKE_GLEAM_WITH_NODE)
+
+/** @param {string} dir @param {number} code */
+export function fakeGleam(dir, code) {
+  if (!withNode) {
+    const file = executable(dir, 'gleam', `echo "gleam $@"; exit ${code}`)
+    return { file, env: {} }
+  }
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, gleamName)
+  if (process.platform === 'win32') fs.copyFileSync(process.execPath, file)
+  else fs.symlinkSync(process.execPath, file)
+  const preload = path.join(dir, 'fake-gleam.cjs')
+  fs.writeFileSync(
+    preload,
+    `const path = require('node:path')
+if (path.basename(process.argv0, '.exe') === 'gleam') {
+  const args = [path.basename(process.argv[1] ?? ''), ...process.argv.slice(2)]
+  console.log(['gleam', ...args].join(' '))
+  process.exit(${code})
+}
+`
+  )
+  const forward = preload.replaceAll('\\', '/')
+  return { file, env: { NODE_OPTIONS: `--require "${forward}"` } }
+}

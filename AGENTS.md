@@ -29,6 +29,10 @@ npm test
 npx prettier --check src bin scripts test package.json README.md AGENTS.md
 ```
 
+On Windows the fake gleam of the tests is node itself, since a shell script
+cannot be an executable there. `FAKE_GLEAM_WITH_NODE=1 npm test` runs that
+variant on Linux and macOS.
+
 The package supports Node 22 and later (`engines`). Keep `@types/node` on the
 same major, so `tsc` flags APIs Node 22 does not have.
 
