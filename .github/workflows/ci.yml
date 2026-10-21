@@ -23,6 +23,8 @@ jobs:
           npx prettier --check src bin scripts test package.json README.md
           AGENTS.md
       - run: npm audit --omit=dev
+      # Needs the network: checks the Sigstore verification of the manifest.
+      - run: npm run test:network
 
   test:
     strategy:

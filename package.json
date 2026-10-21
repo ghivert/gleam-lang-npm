@@ -14,7 +14,8 @@
   },
   "scripts": {
     "manifest": "node scripts/manifest.mjs",
-    "test": "node --test"
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:network": "node --test \"test/network/*.test.mjs\""
   },
   "keywords": [
     "beam",

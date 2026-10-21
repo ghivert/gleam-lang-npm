@@ -18,7 +18,9 @@ at install time.
 - `src/gleam/compiler.mjs`: release URL, download and checksum verification.
 - `src/manifest.mjs`: generated, see below.
 - `scripts/manifest.mjs`: maintainer tool that generates `src/manifest.mjs`.
+- `scripts/attestation.mjs`: the Sigstore check the manifest tool relies on.
 - `test/`: tests, run with `npm test` (`node:test`, no network).
+- `test/network/`: tests that need the network, run with `npm run test:network`.
 
 ## Commands
 
@@ -26,7 +28,8 @@ at install time.
 npm ci
 npx tsc --noEmit
 npm test
-npx prettier --check src bin scripts test package.json README.md AGENTS.md
+npm run test:network
+npx prettier --check .github src bin scripts test package.json README.md AGENTS.md
 ```
 
 On Windows the fake gleam of the tests is node itself, since a shell script

@@ -90,6 +90,16 @@ test.describe('install', () => {
     assert.deepEqual(fs.readdirSync(data.cache), ['gleam-v0.0.0'])
   })
 
+  test.it('leaves nothing behind when the network fails', async () => {
+    test.mock.method(console, 'error', () => {})
+    test.mock.method(globalThis, 'fetch', async () => {
+      throw new TypeError('fetch failed')
+    })
+    const data = fake(project({}), 'f'.repeat(64))
+    await assert.rejects(installer.install(data), /fetch failed/)
+    assert.deepEqual(fs.readdirSync(data.cache), [])
+  })
+
   test.it('leaves nothing behind when the checksum is wrong', async () => {
     test.mock.method(console, 'error', () => {})
     const { body } = await archive()

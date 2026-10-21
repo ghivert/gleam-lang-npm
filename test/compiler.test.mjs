@@ -36,3 +36,21 @@ test.it('reports a failed request', async () => {
   )
   await assert.rejects(compiler.download(release), /404/)
 })
+
+test.it('gives up on a request that takes too long', async () => {
+  const fetch = test.mock.method(
+    globalThis,
+    'fetch',
+    async () => new Response(body)
+  )
+  await compiler.download(release)
+  const options = /** @type {RequestInit} */ (fetch.mock.calls[0]?.arguments[1])
+  assert.ok(options.signal instanceof AbortSignal)
+})
+
+test.it('reports a network failure', async () => {
+  test.mock.method(globalThis, 'fetch', async () => {
+    throw new TypeError('fetch failed')
+  })
+  await assert.rejects(compiler.download(release), /fetch failed/)
+})
