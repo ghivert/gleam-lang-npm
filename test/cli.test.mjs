@@ -42,30 +42,39 @@ async function waitFor(read) {
 }
 
 // Windows has no signals. A console sends Ctrl+Break to a process group,
-// through a system call PowerShell can make. It answers false when the test
-// runs without a console.
-/** @param {number} group */
-function ctrlBreak(group) {
-  const declare =
-    '[DllImport("kernel32.dll")] public static extern bool ' +
-    'GenerateConsoleCtrlEvent(uint type, uint group);'
-  const script =
-    `Add-Type -Namespace Win32 -Name Console -MemberDefinition '${declare}'; ` +
-    `if ([Win32.Console]::GenerateConsoleCtrlEvent(1, ${group})) { exit 0 } ` +
-    'else { exit 1 }'
-  const args = ['-NoProfile', '-NonInteractive', '-Command', script]
-  return childProcess.spawnSync('powershell', args).status === 0
-}
-
-/** @param {childProcess.ChildProcess} child @param {number} ms */
-function exitWithin(child, ms) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('still running')), ms)
-    child.on('exit', code => {
-      clearTimeout(timer)
-      resolve(code)
-    })
+// through system calls PowerShell can make. The wrapper is not a child of the
+// test, so its exit code is read from a handle opened before the event.
+/** @param {number} wrapper @returns {{ code: number } | 'no console' | 'still running'} */
+function interrupt(wrapper) {
+  const kernel32 = [
+    'bool GenerateConsoleCtrlEvent(uint type, uint group);',
+    'IntPtr OpenProcess(uint access, bool inherit, uint pid);',
+    'uint WaitForSingleObject(IntPtr handle, uint ms);',
+    'bool GetExitCodeProcess(IntPtr handle, out uint code);',
+  ]
+    .map(f => `[DllImport("kernel32.dll")] public static extern ${f}`)
+    .join('\n')
+  const script = [
+    `Add-Type -Namespace Win32 -Name Kernel -MemberDefinition '${kernel32}'`,
+    `$handle = [Win32.Kernel]::OpenProcess(0x101000, $false, ${wrapper})`,
+    'if ($handle -eq [IntPtr]::Zero) { exit 2 }',
+    `if (-not [Win32.Kernel]::GenerateConsoleCtrlEvent(1, ${wrapper})) { exit 3 }`,
+    'if ([Win32.Kernel]::WaitForSingleObject($handle, 10000) -ne 0) { exit 4 }',
+    '$code = [uint32]0',
+    '[Win32.Kernel]::GetExitCodeProcess($handle, [ref]$code) | Out-Null',
+    'Write-Output $code',
+  ].join('\n')
+  const encoded = Buffer.from(script, 'utf16le').toString('base64')
+  const args = ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded]
+  const result = childProcess.spawnSync('powershell', args, {
+    encoding: 'utf-8',
   })
+  if (result.status === 3) return 'no console'
+  if (result.status === 4) return 'still running'
+  if (result.status !== 0) {
+    throw new Error(`PowerShell exited ${result.status}: ${result.stderr}`)
+  }
+  return { code: Number(result.stdout.trim()) }
 }
 
 /** @param {string} file @returns {[number, number] | false} */
@@ -148,13 +157,13 @@ test.describe('cli', () => {
 
   // The wrapper must be in a process group of its own that still shares the
   // console, which `start /B` does and Node cannot: `detached` also drops the
-  // console. `/WAIT` makes cmd exit with the code of the wrapper.
+  // console. cmd exits at once, the wrapper lives on.
   test.it('interrupts gleam on Ctrl+Break', { skip: !windows }, async t => {
     const bin = project({})
     const pidFile = path.join(bin, 'pid')
     const { env } = idleGleam(bin, pidFile)
-    const command = `start /B /WAIT "" "${process.execPath}" "${cli}" build`
-    const child = childProcess.spawn(
+    const command = `start /B "" "${process.execPath}" "${cli}" build`
+    childProcess.spawnSync(
       process.env.ComSpec ?? 'cmd.exe',
       ['/d', '/c', command],
       {
@@ -164,23 +173,27 @@ test.describe('cli', () => {
         windowsVerbatimArguments: true,
       }
     )
-    const exited = exitWithin(child, 10000)
-    exited.catch(() => {})
     const [gleam, wrapper] = await waitFor(() => pidsIn(pidFile))
-    assert.equal(child.exitCode, null, 'the wrapper exited before Ctrl+Break')
-    if (!ctrlBreak(wrapper)) {
+    const result = interrupt(wrapper)
+    if (result === 'no console') {
       end(wrapper)
       end(gleam)
       return t.skip('no console to send Ctrl+Break from')
     }
-    try {
-      assert.equal(await exited, 128 + os.constants.signals.SIGINT)
-    } catch (error) {
-      end(wrapper)
-      end(gleam)
-      throw error
-    }
-    assert.throws(() => process.kill(gleam, 0), /ESRCH/)
+    const alive = (() => {
+      try {
+        process.kill(gleam, 0)
+        return true
+      } catch {
+        return false
+      }
+    })()
+    end(wrapper)
+    end(gleam)
+    if (result === 'still running')
+      assert.fail('the wrapper ignored Ctrl+Break')
+    assert.equal(result.code, 128 + os.constants.signals.SIGINT)
+    assert.equal(alive, false, 'gleam outlived the wrapper')
   })
 
   test.it('ignores the PATH when the project pins a version', () => {
