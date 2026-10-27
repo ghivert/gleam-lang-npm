@@ -13,8 +13,11 @@ const execFile = util.promisify(childProcess.execFile)
 export function prepare(version) {
   const cache = environment.cachedir('gleam-npm')
   const { arch, platform } = environment.infos()
-  if (!cache || !arch || !platform)
-    throw new Error('Impossible to detect the env.')
+  if (!cache || !arch || !platform) {
+    throw new Error(
+      `Gleam has no build for ${process.platform} on ${process.arch}.`
+    )
+  }
   const triple = `${arch}-${platform}`
   const asset = releases.manifest.versions[version]?.[triple]
   if (!asset) throw new Error(`Gleam v${version} has no build for ${triple}.`)
@@ -29,6 +32,19 @@ export function prepare(version) {
 async function extract(file, cwd) {
   if (file.endsWith('.zip')) await execFile('tar', ['-xf', file, '-C', cwd])
   else await tar.extract({ file, cwd })
+}
+
+// Moving the directory into place is the last step, so one that exists is
+// complete, unless its binary is missing: a leftover of a failed install.
+/** @param {string} out @param {string} binDir @param {string} binPath */
+async function move(out, binDir, binPath) {
+  try {
+    await fs.promises.rename(out, binDir)
+  } catch (error) {
+    if (fs.existsSync(binPath)) return
+    await fs.promises.rm(binDir, { recursive: true, force: true })
+    await fs.promises.rename(out, binDir)
+  }
 }
 
 // Everything happens in a temporary directory, moved into place at the end:
@@ -46,7 +62,7 @@ export async function install(data) {
     await fs.promises.writeFile(file, archive)
     await fs.promises.mkdir(out)
     await extract(file, out)
-    await fs.promises.rename(out, data.binDir)
+    await move(out, data.binDir, data.binPath)
   } catch (error) {
     if (!fs.existsSync(data.binPath)) throw error
   } finally {

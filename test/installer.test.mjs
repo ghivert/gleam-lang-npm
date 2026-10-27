@@ -80,6 +80,18 @@ test.describe('install', () => {
     }
   )
 
+  test.it('replaces a leftover directory that has no binary', async () => {
+    test.mock.method(console, 'error', () => {})
+    const { body, sha256 } = await archive()
+    test.mock.method(globalThis, 'fetch', async () => new Response(body))
+    const data = fake(project({}), sha256)
+    fs.mkdirSync(data.binDir)
+    fs.writeFileSync(path.join(data.binDir, 'junk'), '')
+    await installer.install(data)
+    assert.ok(fs.existsSync(data.binPath))
+    assert.ok(!fs.existsSync(path.join(data.binDir, 'junk')))
+  })
+
   test.it('survives two installs at the same time', async () => {
     test.mock.method(console, 'error', () => {})
     const { body, sha256 } = await archive()
