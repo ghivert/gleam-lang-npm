@@ -55,8 +55,9 @@ if (path.basename(process.argv0, '.exe') === 'gleam') {
   return { file, env: { NODE_OPTIONS: `--require "${forward}"` } }
 }
 
-// A gleam that writes its pid then waits to be ended. It survives a console
-// Ctrl+Break of its own, so only the wrapper can end it.
+// A gleam that writes its pid and the pid of its parent, then waits to be
+// ended. It survives a console Ctrl+Break of its own, so only the wrapper can
+// end it.
 /** @param {string} dir @param {string} pidFile */
 export function idleGleam(dir, pidFile) {
   fs.mkdirSync(dir, { recursive: true })
@@ -71,7 +72,7 @@ const path = require('node:path')
 if (path.basename(process.argv0, '.exe') === 'gleam') {
   process.on('SIGBREAK', () => {})
   process.on('SIGINT', () => {})
-  fs.writeFileSync(${JSON.stringify(pidFile)}, String(process.pid))
+  fs.writeFileSync(${JSON.stringify(pidFile)}, process.pid + ' ' + process.ppid)
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0)
 }
 `

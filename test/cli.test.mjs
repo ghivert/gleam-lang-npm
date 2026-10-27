@@ -31,7 +31,7 @@ function run(cwd, binDir, args, extra) {
   })
 }
 
-/** @param {() => number | false} read */
+/** @template T @param {() => T | false} read @returns {Promise<T>} */
 async function waitFor(read) {
   for (let i = 0; i < 250; i++) {
     const value = read()
@@ -66,6 +66,23 @@ function exitWithin(child, ms) {
       resolve(code)
     })
   })
+}
+
+/** @param {string} file @returns {[number, number] | false} */
+function pidsIn(file) {
+  try {
+    const [pid, ppid] = fs.readFileSync(file, 'utf-8').split(' ').map(Number)
+    return pid && ppid ? [pid, ppid] : false
+  } catch {
+    return false
+  }
+}
+
+/** @param {number} pid */
+function end(pid) {
+  try {
+    process.kill(pid)
+  } catch {}
 }
 
 /** @param {string} file */
@@ -129,35 +146,41 @@ test.describe('cli', () => {
     assert.match(result.stderr, /asks for the gleam of the system/)
   })
 
+  // The wrapper must be in a process group of its own that still shares the
+  // console, which `start /B` does and Node cannot: `detached` also drops the
+  // console. `/WAIT` makes cmd exit with the code of the wrapper.
   test.it('interrupts gleam on Ctrl+Break', { skip: !windows }, async t => {
     const bin = project({})
     const pidFile = path.join(bin, 'pid')
     const { env } = idleGleam(bin, pidFile)
-    const child = childProcess.spawn(process.execPath, [cli, 'build'], {
-      cwd: project({}),
-      env: environment(bin, env),
-      stdio: 'ignore',
-      detached: true,
-    })
+    const command = `start /B /WAIT "" "${process.execPath}" "${cli}" build`
+    const child = childProcess.spawn(
+      process.env.ComSpec ?? 'cmd.exe',
+      ['/d', '/c', command],
+      {
+        cwd: project({}),
+        env: environment(bin, env),
+        stdio: 'ignore',
+        windowsVerbatimArguments: true,
+      }
+    )
     const exited = exitWithin(child, 10000)
     exited.catch(() => {})
-    const pid = await waitFor(() => pidIn(pidFile))
+    const [gleam, wrapper] = await waitFor(() => pidsIn(pidFile))
     assert.equal(child.exitCode, null, 'the wrapper exited before Ctrl+Break')
-    if (!child.pid || !ctrlBreak(child.pid)) {
-      child.kill()
-      process.kill(pid)
+    if (!ctrlBreak(wrapper)) {
+      end(wrapper)
+      end(gleam)
       return t.skip('no console to send Ctrl+Break from')
     }
     try {
       assert.equal(await exited, 128 + os.constants.signals.SIGINT)
     } catch (error) {
-      child.kill()
-      try {
-        process.kill(pid)
-      } catch {}
+      end(wrapper)
+      end(gleam)
       throw error
     }
-    assert.throws(() => process.kill(pid, 0), /ESRCH/)
+    assert.throws(() => process.kill(gleam, 0), /ESRCH/)
   })
 
   test.it('ignores the PATH when the project pins a version', () => {
