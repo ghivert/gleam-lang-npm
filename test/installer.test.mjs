@@ -92,6 +92,23 @@ test.describe('install', () => {
     assert.ok(!fs.existsSync(path.join(data.binDir, 'junk')))
   })
 
+  test.it('sweeps old temporary directories, keeps recent ones', async () => {
+    test.mock.method(console, 'error', () => {})
+    const { body, sha256 } = await archive()
+    test.mock.method(globalThis, 'fetch', async () => new Response(body))
+    const data = fake(project({}), sha256)
+    const old = path.join(data.cache, 'install-old')
+    const recent = path.join(data.cache, 'install-recent')
+    fs.mkdirSync(old)
+    fs.mkdirSync(recent)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+    fs.utimesSync(old, twoHoursAgo, twoHoursAgo)
+    await installer.install(data)
+    assert.ok(!fs.existsSync(old))
+    assert.ok(fs.existsSync(recent))
+    assert.ok(fs.existsSync(data.binPath))
+  })
+
   test.it('survives two installs at the same time', async () => {
     test.mock.method(console, 'error', () => {})
     const { body, sha256 } = await archive()

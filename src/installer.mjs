@@ -34,6 +34,23 @@ async function extract(file, cwd) {
   else await tar.extract({ file, cwd })
 }
 
+const stale = 60 * 60 * 1000
+
+// Temporary directories of installs that were killed are removed after an
+// hour. Younger ones may belong to an install still running.
+/** @param {string} cache */
+async function sweep(cache) {
+  const entries = await fs.promises.readdir(cache)
+  for (const entry of entries) {
+    if (!entry.startsWith('install-')) continue
+    const dir = path.join(cache, entry)
+    const stat = await fs.promises.stat(dir).catch(() => null)
+    if (stat && Date.now() - stat.mtimeMs > stale) {
+      await fs.promises.rm(dir, { recursive: true, force: true })
+    }
+  }
+}
+
 // Moving the directory into place is the last step, so one that exists is
 // complete, unless its binary is missing: a leftover of a failed install.
 /** @param {string} out @param {string} binDir @param {string} binPath */
@@ -55,6 +72,7 @@ export async function install(data) {
   console.error(`Downloading Gleam v${data.release.version}...`)
   const archive = await gleam.compiler.download(data.release)
   await fs.promises.mkdir(data.cache, { recursive: true })
+  await sweep(data.cache)
   const tmp = await fs.promises.mkdtemp(path.join(data.cache, 'install-'))
   try {
     const file = path.join(tmp, data.release.file)
