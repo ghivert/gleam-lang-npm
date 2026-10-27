@@ -7,7 +7,7 @@ started!
 
 ## What is this package for?
 
-For stantard development purposes, a classic gleam installation should be done,
+For standard development purposes, a classic gleam installation should be done,
 [following the official instructions](https://gleam.run/getting-started/installing/).
 However, having a gleam package on NPM allows everyone to embed gleam directly
 from a `package.json`, for certain scenarios:
