@@ -3,6 +3,7 @@ import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as test from 'node:test'
+import * as url from 'node:url'
 import * as manifest from '../scripts/manifest.mjs'
 import { project } from './helpers.mjs'
 
@@ -127,7 +128,9 @@ test.describe('write', () => {
         { versions: { '1.10.0': { x: asset }, '1.9.0': { x: asset } } },
         file
       )
-      const written = await import(`${file}?${Date.now()}`)
+      const written = await import(
+        `${url.pathToFileURL(file).href}?${Date.now()}`
+      )
       assert.deepEqual(Object.keys(written.manifest.versions), [
         '1.9.0',
         '1.10.0',
