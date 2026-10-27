@@ -54,3 +54,28 @@ if (path.basename(process.argv0, '.exe') === 'gleam') {
   const forward = preload.replaceAll('\\', '/')
   return { file, env: { NODE_OPTIONS: `--require "${forward}"` } }
 }
+
+// A gleam that writes its pid then waits to be ended. It survives a console
+// Ctrl+Break of its own, so only the wrapper can end it.
+/** @param {string} dir @param {string} pidFile */
+export function idleGleam(dir, pidFile) {
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, gleamName)
+  if (process.platform === 'win32') fs.copyFileSync(process.execPath, file)
+  else fs.symlinkSync(process.execPath, file)
+  const preload = path.join(dir, 'idle-gleam.cjs')
+  fs.writeFileSync(
+    preload,
+    `const fs = require('node:fs')
+const path = require('node:path')
+if (path.basename(process.argv0, '.exe') === 'gleam') {
+  process.on('SIGBREAK', () => {})
+  process.on('SIGINT', () => {})
+  fs.writeFileSync(${JSON.stringify(pidFile)}, String(process.pid))
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0)
+}
+`
+  )
+  const forward = preload.replaceAll('\\', '/')
+  return { file, env: { NODE_OPTIONS: `--require "${forward}"` } }
+}

@@ -7,7 +7,19 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 
 const args = process.argv.slice(2)
-const signals = /** @type {const} */ (['SIGINT', 'SIGTERM', 'SIGHUP'])
+const signals = /** @type {const} */ ([
+  'SIGINT',
+  'SIGTERM',
+  'SIGHUP',
+  'SIGBREAK',
+])
+
+// Windows reports Ctrl+Break as SIGBREAK, a signal it cannot deliver to a
+// child process: the compiler is interrupted instead.
+/** @param {NodeJS.Signals} signal */
+function forward(signal) {
+  return signal === 'SIGBREAK' ? 'SIGINT' : signal
+}
 
 /** @param {unknown} error */
 function fail(error) {
@@ -20,7 +32,9 @@ function fail(error) {
 /** @param {string} binPath @param {NodeJS.ProcessEnv} env */
 function run(binPath, env) {
   const child = childProcess.spawn(binPath, args, { stdio: 'inherit', env })
-  for (const signal of signals) process.on(signal, () => child.kill(signal))
+  for (const signal of signals) {
+    process.on(signal, () => child.kill(forward(signal)))
+  }
   child.on('error', fail)
   child.on('exit', (code, signal) => {
     if (signal) process.exit(128 + os.constants.signals[signal])

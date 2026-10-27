@@ -1,9 +1,10 @@
 import * as assert from 'node:assert/strict'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
+import * as os from 'node:os'
 import * as path from 'node:path'
 import * as test from 'node:test'
-import { executable, fakeGleam, project } from './helpers.mjs'
+import { executable, fakeGleam, idleGleam, project } from './helpers.mjs'
 
 const cli = path.resolve(import.meta.dirname, '../bin/cli.mjs')
 const windows = process.platform === 'win32'
@@ -38,6 +39,33 @@ async function waitFor(read) {
     await new Promise(resolve => setTimeout(resolve, 20))
   }
   throw new Error('The fake gleam did not start.')
+}
+
+// Windows has no signals. A console sends Ctrl+Break to a process group,
+// through a system call PowerShell can make. It answers false when the test
+// runs without a console.
+/** @param {number} group */
+function ctrlBreak(group) {
+  const declare =
+    '[DllImport("kernel32.dll")] public static extern bool ' +
+    'GenerateConsoleCtrlEvent(uint type, uint group);'
+  const script =
+    `Add-Type -Namespace Win32 -Name Console -MemberDefinition '${declare}'; ` +
+    `if ([Win32.Console]::GenerateConsoleCtrlEvent(1, ${group})) { exit 0 } ` +
+    'else { exit 1 }'
+  const args = ['-NoProfile', '-NonInteractive', '-Command', script]
+  return childProcess.spawnSync('powershell', args).status === 0
+}
+
+/** @param {childProcess.ChildProcess} child @param {number} ms */
+function exitWithin(child, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('still running')), ms)
+    child.on('exit', code => {
+      clearTimeout(timer)
+      resolve(code)
+    })
+  })
 }
 
 /** @param {string} file */
@@ -99,6 +127,37 @@ test.describe('cli', () => {
     const result = run(cwd, project({}), [])
     assert.equal(result.status, 1)
     assert.match(result.stderr, /asks for the gleam of the system/)
+  })
+
+  test.it('interrupts gleam on Ctrl+Break', { skip: !windows }, async t => {
+    const bin = project({})
+    const pidFile = path.join(bin, 'pid')
+    const { env } = idleGleam(bin, pidFile)
+    const child = childProcess.spawn(process.execPath, [cli, 'build'], {
+      cwd: project({}),
+      env: environment(bin, env),
+      stdio: 'ignore',
+      detached: true,
+    })
+    const exited = exitWithin(child, 10000)
+    exited.catch(() => {})
+    const pid = await waitFor(() => pidIn(pidFile))
+    assert.equal(child.exitCode, null, 'the wrapper exited before Ctrl+Break')
+    if (!child.pid || !ctrlBreak(child.pid)) {
+      child.kill()
+      process.kill(pid)
+      return t.skip('no console to send Ctrl+Break from')
+    }
+    try {
+      assert.equal(await exited, 128 + os.constants.signals.SIGINT)
+    } catch (error) {
+      child.kill()
+      try {
+        process.kill(pid)
+      } catch {}
+      throw error
+    }
+    assert.throws(() => process.kill(pid, 0), /ESRCH/)
   })
 
   test.it('ignores the PATH when the project pins a version', () => {
