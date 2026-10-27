@@ -23,13 +23,8 @@ function getPlatform() {
       return 'apple-darwin'
     case 'win32':
       return 'pc-windows-msvc'
-    case 'aix':
     case 'android':
-    case 'freebsd':
     case 'linux':
-    case 'netbsd':
-    case 'openbsd':
-    case 'sunos':
       return 'unknown-linux-musl'
     default:
       return null
