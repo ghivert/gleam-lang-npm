@@ -85,6 +85,22 @@ test.describe('cli', () => {
     assert.throws(() => process.kill(pid, 0), /ESRCH/)
   })
 
+  test.it('runs the gleam of the PATH when the project asks for system', () => {
+    const bin = project({})
+    const { env } = fakeGleam(bin, 0)
+    const cwd = project({ 'mise.toml': '[tools]\ngleam = "system"\n' })
+    const result = run(cwd, bin, ['build'], env)
+    assert.equal(result.stdout.trim(), 'gleam build')
+    assert.equal(result.status, 0)
+  })
+
+  test.it('fails cleanly when system is asked but PATH has no gleam', () => {
+    const cwd = project({ 'mise.toml': '[tools]\ngleam = "system"\n' })
+    const result = run(cwd, project({}), [])
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /asks for the gleam of the system/)
+  })
+
   test.it('ignores the PATH when the project pins a version', () => {
     const bin = project({})
     const { env } = fakeGleam(bin, 0)

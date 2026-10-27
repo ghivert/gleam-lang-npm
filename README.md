@@ -41,7 +41,8 @@ this order, and uses the first one it finds:
    (`>= 1.6.0 and < 2.0.0`, `~> 1.6`).
 2. `engines.gleam` in `package.json`, as a semver range (`^1.6.0`).
 3. `gleam` in the `[tools]` of `mise.toml` (or `.mise.toml`, `mise.local.toml`),
-   or in `.tool-versions`. `1.19` means any 1.19.x.
+   or in `.tool-versions`. `1.19` means any 1.19.x, and `system` means the gleam
+   of your `PATH`.
 4. A `gleam` already installed in your `PATH`, which is run as is.
 5. The latest release known to the package.
 

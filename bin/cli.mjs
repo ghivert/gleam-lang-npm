@@ -30,10 +30,15 @@ function run(binPath, env) {
 
 try {
   const project = version.fromProject(process.cwd())
+  const system = project !== null && 'system' in project
   // A gleam installed by the user wins over the one this package downloads.
-  const local = project ? null : locate.inPath()
+  const local = !project || system ? locate.inPath() : null
   if (local) {
     run(local, { ...process.env, CHOUQUETTE_GLEAM_WRAPPED: '1' })
+  } else if (system) {
+    throw new Error(
+      `${project.file} asks for the gleam of the system, but there is none in PATH.`
+    )
   } else {
     const data = installer.prepare(project?.version ?? version.latest())
     if (!fs.existsSync(data.binPath)) {

@@ -49,11 +49,13 @@ function hex(spec) {
   return v => groups.some(group => group.every(test => test?.(v)))
 }
 
-// engines and mise use semver ranges, where `1.19` means any 1.19.x.
-/** @param {string} spec @returns {Requirement | null} */
+// engines and mise use semver ranges, where `1.19` means any 1.19.x, and
+// mise lets `system` stand for the gleam installed on the machine.
+/** @param {string} spec @returns {Requirement | 'system' | null} */
 function range(spec) {
   const text = spec.trim().replace(/^(v|prefix:)/, '')
   if (text === 'latest') return () => true
+  if (text === 'system') return 'system'
   if (!semver.validRange(text)) return null
   return v => semver.satisfies(v, text)
 }
@@ -154,7 +156,7 @@ export function latest() {
   return version
 }
 
-/** @param {string} cwd */
+/** @param {string} cwd @returns {{ version: string, file: string } | { system: true, file: string } | null} */
 export function fromProject(cwd) {
   for (const source of sources) {
     const found = findUp(cwd, source.files, source.read)
@@ -163,6 +165,7 @@ export function fromProject(cwd) {
     if (!requirement) {
       throw new Error(`Invalid Gleam version "${found.spec}" in ${found.file}.`)
     }
+    if (requirement === 'system') return { system: true, file: found.file }
     const version = available().find(requirement)
     if (!version) {
       throw new Error(
