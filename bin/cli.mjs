@@ -4,8 +4,10 @@ import * as locate from '#chouquette/locate'
 import * as version from '#chouquette/version'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
+import * as os from 'node:os'
 
 const args = process.argv.slice(2)
+const signals = /** @type {const} */ (['SIGINT', 'SIGTERM', 'SIGHUP'])
 
 /** @param {unknown} error */
 function fail(error) {
@@ -13,12 +15,17 @@ function fail(error) {
   process.exit(1)
 }
 
+// Signals go to the compiler, and its exit status is reported as a shell
+// would: 128 plus the signal that killed it.
 /** @param {string} binPath @param {NodeJS.ProcessEnv} env */
 function run(binPath, env) {
-  childProcess
-    .spawn(binPath, args, { stdio: 'inherit', env })
-    .on('error', fail)
-    .on('exit', code => process.exit(code ?? 1))
+  const child = childProcess.spawn(binPath, args, { stdio: 'inherit', env })
+  for (const signal of signals) process.on(signal, () => child.kill(signal))
+  child.on('error', fail)
+  child.on('exit', (code, signal) => {
+    if (signal) process.exit(128 + os.constants.signals[signal])
+    process.exit(code ?? 1)
+  })
 }
 
 try {
